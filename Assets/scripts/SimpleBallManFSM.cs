@@ -44,14 +44,15 @@ public class SimpleBallManFSM : MonoBehaviour
 
 				if(crystal != null) {
 					agent.Hunger -= 1 + (int)Mathf.Floor(Random.Range(0, 2));
+					agent.Exhaustion -= 3 + (int)Mathf.Floor(Random.Range(0, 2));
 					agent.CrystalsHeld += 1 + (int)Mathf.Floor(Random.Range(0, 1));
 
 					Debug.Log(agent.transform.name + " gathered a crystal!");
 
-					if(agent.Hunger < 3) {
-						agent.ChangeState(EatFoodState.Instance);
-					} else if(agent.CrystalsHeld >= 25) {
+					if(agent.CrystalsHeld >= 25 || agent.Exhaustion < 5) {
 						agent.ChangeState(ReturnToNestState.Instance);
+					} else if(agent.Hunger < 3) {
+						agent.ChangeState(EatFoodState.Instance);
 					}
 
 					return;
@@ -197,6 +198,7 @@ public class SimpleBallManFSM : MonoBehaviour
 
 				if(food != null) {
 					++agent.Hunger;
+					++agent.Exhaustion;
 
 					Debug.Log(agent.transform.name + " ate some food!");
 
@@ -364,7 +366,9 @@ public class SimpleBallManFSM : MonoBehaviour
 
 					Debug.Log(agent.transform.name + " deposited his crystals in his nest.");
 
-					if(agent.Hunger >= 8) {
+					if(agent.Exhaustion < 5) {
+						agent.ChangeState(SleepState.Instance);
+					} else if(agent.Hunger >= 8) {
 						agent.ChangeState(FindCrystalState.Instance);
 					} else {
 						agent.ChangeState(FindFoodState.Instance);
@@ -393,11 +397,68 @@ public class SimpleBallManFSM : MonoBehaviour
 		}
 	}
 
+	public class SleepState : State
+	{
+		protected static SleepState instance;
+
+		public static SleepState Instance {
+			get {
+				if(instance == null) {
+					instance = new SleepState();
+				}
+
+				return instance;
+			}
+		}
+
+		protected SleepState() {}
+
+		public override void Enter(SimpleBallManFSM agent)
+		{
+			Debug.Log(agent.transform.name + " is going to sleep.");
+		}
+
+		public override void Run(SimpleBallManFSM agent)
+		{
+			Collider[] entities = Physics.OverlapSphere(agent.transform.position, agent.InteractionRadius, agent.InteractableLayers);
+
+			foreach(Collider entity in entities) {
+				NestScaler nest = entity.GetComponentInParent<NestScaler>();
+
+				if(nest != null) {
+					if(agent.Exhaustion < 50) {
+						if(agent.Hunger > 0) {
+							--agent.Hunger;
+						}
+
+						agent.Exhaustion += 5;
+
+						Debug.Log(agent.transform.name + " zzzzzzzz ...");
+					} else if(agent.Hunger < 8){
+						agent.ChangeState(FindFoodState.Instance);
+					} else {
+						agent.ChangeState(FindCrystalState.Instance);
+					}
+
+					return;
+				}
+			}
+
+			agent.ChangeState(ReturnToNestState.Instance);
+		}
+
+		public override void Leave(SimpleBallManFSM agent)
+		{
+			Debug.Log(agent.transform.name + " has stopped sleeping.");
+		}
+	}
+
 	public float TickRate = 10.0f;
 	public float InteractionRadius = 2.5f;
 	public float SearchRadius = 50.0f;
 	public LayerMask InteractableLayers;
 	public int Hunger = 10;
+	public int Exhaustion = 50;
 	public int CrystalsHeld;
 
 	protected float m_NextActTime;
