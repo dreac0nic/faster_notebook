@@ -43,11 +43,22 @@ public class SimpleBallManFSM : MonoBehaviour
 				}
 
 				if(crystal != null) {
-					agent.Hunger -= 1 + (int)Mathf.Floor(Random.Range(0, 2));
-					agent.Exhaustion -= 3 + (int)Mathf.Floor(Random.Range(0, 2));
-					agent.CrystalsHeld += 1 + (int)Mathf.Floor(Random.Range(0, 1));
+					if(Random.value <= agent.Determination) {
+						agent.CrystalsHeld += 20;
+						agent.Determination += 0.02f;
 
-					Debug.Log(agent.transform.name + " gathered a crystal!");
+						if(agent.DeterminationEffect != null) {
+							agent.DeterminationEffect.Play();
+						}
+
+						Debug.Log(agent.transform.name + " is filled with DETERMINATION and gathered 20 crystals!");
+					} else {
+						agent.Hunger -= 1 + (int)Mathf.Floor(Random.Range(0, 2));
+						agent.Exhaustion -= 3 + (int)Mathf.Floor(Random.Range(0, 2));
+						agent.CrystalsHeld += 1 + (int)Mathf.Floor(Random.Range(0, 1));
+
+						Debug.Log(agent.transform.name + " gathered a crystal!");
+					}
 
 					if(agent.CrystalsHeld >= 25 || agent.Exhaustion < 5) {
 						agent.ChangeState(ReturnToNestState.Instance);
@@ -199,6 +210,10 @@ public class SimpleBallManFSM : MonoBehaviour
 				if(food != null) {
 					++agent.Hunger;
 					++agent.Exhaustion;
+
+					if(agent.Determination > 0.2f) {
+						agent.Determination -= 0.05f;
+					}
 
 					Debug.Log(agent.transform.name + " ate some food!");
 
@@ -449,6 +464,7 @@ public class SimpleBallManFSM : MonoBehaviour
 
 		public override void Leave(SimpleBallManFSM agent)
 		{
+			agent.Determination = 0.02f;
 			Debug.Log(agent.transform.name + " has stopped sleeping.");
 		}
 	}
@@ -457,8 +473,10 @@ public class SimpleBallManFSM : MonoBehaviour
 	public float InteractionRadius = 2.5f;
 	public float SearchRadius = 50.0f;
 	public LayerMask InteractableLayers;
+	public ParticleSystem DeterminationEffect;
 	public int Hunger = 10;
 	public int Exhaustion = 50;
+	public float Determination = 0.1f;
 	public int CrystalsHeld;
 
 	protected float m_NextActTime;
